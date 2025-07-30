@@ -64,6 +64,16 @@ export default function Home() {
     setError('');
     
     try {
+      // Store birth data in localStorage for the success page
+      const birthData = {
+        name: formData.name,
+        birthDate: `${months[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}`,
+        birthTime: `${selectedTime.hour}:${selectedTime.minute.toString().padStart(2, '0')} ${selectedTime.ampm} ${selectedTime.timezone}`,
+        birthPlace: formData.birthPlace,
+        email: formData.email
+      };
+      localStorage.setItem('birthData', JSON.stringify(birthData));
+      
       // If promo code is TEST2024, redirect directly to success page
       if (formData.promoCode === 'TEST2024') {
         // Bypass payment for testing

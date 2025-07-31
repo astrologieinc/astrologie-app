@@ -85,7 +85,7 @@ Format as an elegant JSON object for display.`;
     const data = await response.json();
     
     // Extract the report from Claude's response
-    const reportText = data.content[0].text;
+    const reportText = data?.content?.[0]?.text || null;
     
     // Parse the report (assuming Claude returns JSON)
     let report;

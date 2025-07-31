@@ -64,7 +64,7 @@ export default function Home() {
     setError('');
     
     try {
-      // Store birth data in localStorage for the success page
+      // Format birth data properly
       const birthData = {
         name: formData.name,
         birthDate: `${months[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}`,
@@ -72,22 +72,22 @@ export default function Home() {
         birthPlace: formData.birthPlace,
         email: formData.email
       };
-      localStorage.setItem('birthData', JSON.stringify(birthData));
-      
-      // If promo code is TEST2024, redirect directly to success page
-      if (formData.promoCode === 'TEST2024') {
-        // Bypass payment for testing
-        window.location.href = `/success?session_id=test_${Date.now()}&test_mode=true`;
-        return;
-      }
-      
+
+      // Save formatted data to session storage
+      sessionStorage.setItem('formData', JSON.stringify(birthData));
+
+      // Always call the payment API - it will handle TEST2024 internally
       const response = await fetch('/api/create-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          formData: formData,
+          formData: {
+            ...formData,
+            birthDate: birthData.birthDate,
+            birthTime: birthData.birthTime
+          },
           amount: 39.99,
           promoCode: formData.promoCode
         }),
@@ -99,6 +99,7 @@ export default function Home() {
         throw new Error(data.error || 'Payment session creation failed');
       }
       
+      // The API will return either a Stripe URL or a direct success URL for TEST2024
       if (data.url) {
         window.location.href = data.url;
       } else {
@@ -397,7 +398,7 @@ export default function Home() {
                 placeholder="Enter code"
               />
               {formData.promoCode === 'TEST2024' && (
-                <p className="mt-2 text-green-600 text-sm">✓ Test mode activated - payment will be skipped</p>
+                <p className="mt-2 text-green-600 text-sm">✓ Test mode activated - reduced price for testing</p>
               )}
             </div>
           )}
@@ -422,7 +423,7 @@ export default function Home() {
                 Processing...
               </div>
             ) : formData.promoCode === 'TEST2024' ? (
-              'Generate My Birth Chart – FREE (Test Mode)'
+              'Generate My Birth Chart – $0.50 (Test Mode)'
             ) : (
               'Generate My Birth Chart – $39.99'
             )}

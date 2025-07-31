@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe('pk_test_51ODb0NEniiD0lGWuqBLhS04yGCXrq4QHql5P1uOydKGOIf1hr9ItLwOcCFuXo8pJQzG7br08oq3pkMiRwq2hsVrk00bHqfD6kG');
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function Home() {
   const [formData, setFormData] = useState({

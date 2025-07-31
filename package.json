@@ -19,7 +19,7 @@
     "react-dom": "19.1.0",
     "react-pdf": "^10.0.1",
     "resend": "^4.7.0",
-    "stripe": "^18.3.0"
+    "stripe": "^18.4.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

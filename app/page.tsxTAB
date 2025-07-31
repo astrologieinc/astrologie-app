@@ -65,25 +65,38 @@ export default function Home() {
     
     try {
       // If promo code is TEST2024, redirect directly to test-success page
-      if (formData.promoCode.toUpperCase() === 'TEST2024') {
+      if (formData.promoCode === 'TEST2024') {
         // Bypass payment for testing
         window.location.href = '/test-success';
         return;
       }
       
-      // Otherwise, go to payment page with form data
-      const params = new URLSearchParams({
-        name: formData.name,
-        birthDate: formData.birthDate,
-        birthTime: formData.birthTime,
-        birthPlace: formData.birthPlace,
-        email: formData.email
+      const response = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          formData: formData,
+          amount: 39.99,
+          promoCode: formData.promoCode
+        }),
       });
       
-      window.location.href = `/payment?${params.toString()}`;
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment session creation failed');
+      }
+      
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
     } catch (error) {
       console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'Error processing request. Please try again.');
+      setError(error instanceof Error ? error.message : 'Error processing payment. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -373,7 +386,7 @@ export default function Home() {
                 onChange={(e) => setFormData({...formData, promoCode: e.target.value})}
                 placeholder="Enter code"
               />
-              {formData.promoCode.toUpperCase() === 'TEST2024' && (
+              {formData.promoCode === 'TEST2024' && (
                 <p className="mt-2 text-green-600 text-sm">✓ Test mode activated - payment will be skipped</p>
               )}
             </div>
@@ -398,7 +411,7 @@ export default function Home() {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                 Processing...
               </div>
-            ) : formData.promoCode.toUpperCase() === 'TEST2024' ? (
+            ) : formData.promoCode === 'TEST2024' ? (
               'Generate My Birth Chart – FREE (Test Mode)'
             ) : (
               'Generate My Birth Chart – $39.99'
@@ -426,3 +439,4 @@ export default function Home() {
     </div>
   );
 }
+

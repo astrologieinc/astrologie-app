@@ -1,32 +1,62 @@
 import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
+
+// Your new restricted key
+const stripe = new Stripe('rk_test_51RqL1pCBZQndsJfhp5Ve4hfDpIIgwBHXhzP3IjbBq72puwGyL6bueMJi9fXHj01Xl1MNZ7VhPvjTIaWyXlTJAJaB00ay9QwNkH', {
+  apiVersion: '2023-10-16',
+})
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    console.log('Received body:', body)
+    const { formData, amount, promoCode } = await request.json()
     
-    const { formData, amount, promoCode } = body
+    console.log('Received payment request:', { formData, amount, promoCode })
     
-    // If TEST2024 promo code, use test success page
+    // If test promo code, skip payment
     if (promoCode === 'TEST2024') {
-      console.log('TEST2024 promo code detected!')
-      
-      const params = new URLSearchParams({
-        sessionId: "test_session_" + Date.now(),
-        userId: "test_user_" + Date.now(),
-        purchaseId: "test_purchase_" + Date.now(),
-        test_mode: "true"
+      return NextResponse.json({ 
+        url: `/success?session_id=test_${Date.now()}&test_mode=true` 
       })
-      
-      // Use test-success page for TEST2024
-      return NextResponse.json({ url: "/test-success?" + params.toString() })
     }
     
-    // For real payments, would use /success page
-    // This would include actual Stripe integration
-    return NextResponse.json({ error: "Payment not implemented" }, { status: 400 })
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Premium Astrological Birth Chart Analysis',
+              description: 'Complete cosmic blueprint with 9 detailed sections',
+            },
+            unit_amount: 3999,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: 'http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: 'http://localhost:3000/payment',
+      customer_email: formData.email,
+      metadata: {
+        name: formData.name,
+        birthDate: formData.birthDate,
+        birthTime: formData.birthTime,
+        birthPlace: formData.birthPlace,
+        email: formData.email,
+      },
+    })
+    
+    console.log('Stripe session created:', session.id)
+    
+    return NextResponse.json({ url: session.url })
     
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    console.error('Payment creation error:', error)
+    return NextResponse.json(
+      { error: 'Failed to create payment session' },
+      { status: 500 }
+    )
   }
 }

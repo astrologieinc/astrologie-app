@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Storage</title>
+</head>
+<body>
+    <h1>Check LocalStorage</h1>
+    <button onclick="checkStorage()">Check birthData</button>
+    <button onclick="testAPI()">Test Email API</button>
+    <pre id="result"></pre>
+    
+    <script>
+    function checkStorage() {
+        const data = localStorage.getItem('birthData');
+        document.getElementById('result').textContent = 'birthData: ' + (data || 'NOT FOUND');
+    }
+    
+    async function testAPI() {
+        try {
+            const response = await fetch('http://localhost:3001/api/send-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: 'shefalimanojpatel@gmail.com',
+                    name: 'Test Email',
+                    report: { title: 'Test', summary: 'Testing email' }
+                })
+            });
+            const result = await response.json();
+            document.getElementById('result').textContent = 'API Result: ' + JSON.stringify(result, null, 2);
+        } catch (err) {
+            document.getElementById('result').textContent = 'Error: ' + err.message;
+        }
+    }
+    </script>
+</body>
+</html>

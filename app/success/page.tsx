@@ -1,243 +1,128 @@
 'use client';
 
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-interface ReportSection {
-  icon: string;
-  title: string;
-  content: string;
-}
-
-interface Report {
-  title: string;
-  summary: string;
-  sections: ReportSection[];
-}
-
-export default function Success() {
+function SuccessContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
-  const testMode = searchParams.get('test_mode') === 'true';
+  const [phase, setPhase] = useState('generating'); // 'generating', 'sent', 'error'
+  const [error, setError] = useState('');
   
-  const [report, setReport] = useState<Report | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState('shefalimanojpatel@gmail.com'); // This would come from session/form data
+  useEffect(() => {
+    // Auto-send on page load
+    sendReport();
+  }, []);
+
+  const sendReport = async () => {
+    try {
+      setPhase('generating');
+      
+      const birthData = JSON.parse(localStorage.getItem('birthData') || '{}');
+      console.log('Sending report for:', birthData);
+      
+      // Generate report
+      const reportRes = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ birthData })
+      });
+      const reportData = await reportRes.json();
+      
+      // Send email
+      const emailRes = await fetch('/api/send-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: birthData.email || 'astrologieinc@gmail.com',
+          name: birthData.name || 'User',
+          report: reportData.report
+        })
+      });
+      
+      const emailData = await emailRes.json();
+      console.log('Email result:', emailData);
+      
+      if (emailData.success) {
+        setPhase('sent');
+      } else {
+        throw new Error(emailData.error);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err.message || 'Failed to send report');
+      setPhase('error');
+    }
+  };
 
   useEffect(() => {
-    // Load Google Fonts
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
-
-    return () => {
-      if (document.head.contains(link)) document.head.removeChild(link);
-    };
   }, []);
 
-  useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        // In production, this would fetch the actual report based on sessionId
-        // For demo, we'll use a sophisticated sample report
-        const demoReport: Report = {
-          title: "Cosmic Blueprint for Shefali Manoj Patel",
-          summary: "The stars have aligned to reveal your extraordinary destiny. Your chart indicates rare cosmic signatures found only in the world's most successful individuals.",
-          sections: [
-            {
-              icon: "👑",
-              title: "Executive Summary",
-              content: "Your astrological configuration reveals the cosmic DNA of a visionary leader. Born under powerful planetary alignments, you possess the rare combination of intuitive genius and strategic mastery that defines the ultra-successful."
-            },
-            {
-              icon: "✨",
-              title: "Dominant Celestial Signature",
-              content: "You are 'The Cosmic Architect' - a rare archetype that appears once in a generation. Your power colors are deep purple and gold, resonating with wealth and wisdom. Your optimal timing for major decisions falls on Thursdays during the golden hour."
-            },
-            {
-              icon: "💰",
-              title: "Wealth Magnetism Profile",
-              content: "Jupiter's exceptional placement in your chart indicates billionaire potential actualized between ages 35-42. March 2024 and September 2025 are your wealth acceleration windows. Your investment sweet spots align with technology, luxury goods, and transformative industries."
-            },
-            {
-              icon: "🚀",
-              title: "Leadership & Legacy Blueprint",
-              content: "You're destined to influence millions through innovative ventures. Your genius zones include strategic foresight, pattern recognition, and catalyzing human potential. Industries aligned with your cosmic blueprint: AI, sustainable luxury, and consciousness technologies."
-            },
-            {
-              icon: "🤝",
-              title: "Power Partnerships",
-              content: "Your ideal business partners carry strong Earth and Fire elements. Warning: avoid partnerships during Mercury retrograde. Your cosmic board should include Capricorn strategists, Leo visionaries, and Scorpio power brokers."
-            },
-            {
-              icon: "💕",
-              title: "Elite Love Compatibility",
-              content: "Your romantic destiny involves a partner who matches your ambition and depth. Peak romance periods: May 2024 and December 2024. Your ideal partner profile: accomplished, spiritually evolved, and shares your vision for legacy."
-            },
-            {
-              icon: "📊",
-              title: "Strategic Life Seasons",
-              content: "You're entering a 7-year wealth expansion cycle. Critical decision windows: April 15-30, 2024 and October 1-15, 2024. Major opportunity surge begins January 2025."
-            },
-            {
-              icon: "🔮",
-              title: "Exclusive 12-Month Forecast",
-              content: "January-March 2024: Foundation setting. April-June 2024: Explosive growth phase. July-September 2024: Strategic consolidation. October-December 2024: Quantum leap opportunities. Launch ventures on new moons for maximum cosmic support."
-            },
-            {
-              icon: "🧘",
-              title: "Billionaire Mindset Activations",
-              content: "Your power mantra: 'I am divinely guided to infinite abundance.' Daily practice: 5:55 AM meditation facing East. Your unique success formula: Intuition (40%) + Strategy (30%) + Timing (30%) = Inevitable Success."
-            }
-          ]
-        };
-        
-        setReport(demoReport);
-      } catch (error) {
-        console.error('Error fetching report:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchReport();
-  }, [sessionId]);
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-purple-50" style={{ backgroundColor: '#FAF8FC' }}>
       <div className="max-w-4xl mx-auto px-8 py-16">
-        {/* Logo */}
         <div className="text-center mb-12">
-          <h1 
-            className="text-7xl font-light tracking-wider text-black mb-4"
-            style={{ fontFamily: 'Cormorant Garamond, serif' }}
-          >
+          <h1 className="text-7xl font-light tracking-wider text-black mb-8" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
             ASTROLOGIE
           </h1>
-          <div className="w-24 h-0.5 bg-purple-300 mx-auto"></div>
         </div>
 
-        {/* Report Content */}
-        {isLoading ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Generating your cosmic blueprint...</p>
+        {phase === 'generating' && (
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-8 text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-lg">Channeling cosmic wisdom...</p>
+            <p className="text-sm text-gray-600 mt-2">Generating and sending your report...</p>
           </div>
-        ) : report ? (
+        )}
+        
+        {phase === 'sent' && (
           <>
-            {/* Report Header */}
-            <div className="bg-white rounded-lg shadow-sm p-8 mb-8 text-center">
-              <h2 
-                className="text-3xl font-light mb-6"
-                style={{ fontFamily: 'Cormorant Garamond, serif' }}
-              >
-                {report.title}
-              </h2>
-              
-              <p className="text-gray-600 mb-2" style={{ fontFamily: 'Avenir, -apple-system, sans-serif' }}>
-                Born on January 10, 1994 at 12:58 PM EST
-              </p>
-              <p className="text-gray-600 mb-8" style={{ fontFamily: 'Avenir, -apple-system, sans-serif' }}>
-                PARSIPANNY, NEW JERSEY, USA
-              </p>
-              
-              <p 
-                className="text-gray-700 italic leading-relaxed"
-                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300 }}
-              >
-                {report.summary}
-              </p>
+            <div className="bg-white rounded-lg shadow-lg p-8 mb-8 text-center">
+              <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <h2 className="text-2xl font-semibold mb-2">Report Sent Successfully!</h2>
+              <p className="text-gray-700">Check your email at astrologieinc@gmail.com</p>
             </div>
-
-            {/* All Report Sections - Visible by Default */}
-            <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
-              {report.sections.map((section, index) => (
-                <div key={index} className="mb-12 last:mb-0">
-                  <h3 
-                    className="text-xl text-gray-500 mb-4 flex items-center"
-                    style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-                  >
-                    <span className="mr-3 text-2xl">{section.icon}</span>
-                    {section.title}
-                  </h3>
-                  <p 
-                    className="text-gray-700 leading-relaxed"
-                    style={{ fontFamily: 'Avenir, -apple-system, sans-serif', fontWeight: 300 }}
-                  >
-                    {section.content}
-                  </p>
-                </div>
-              ))}
-              
-              {/* Demo Notice */}
-              <div className="mt-12 p-6 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p className="text-center text-gray-700" style={{ fontFamily: 'Avenir, -apple-system, sans-serif' }}>
-                  ✅ This is a demo report. Full AI-powered reports coming soon!
-                </p>
-              </div>
-            </div>
-
-            {/* Email Confirmation Section */}
-            <div className="text-center mb-12">
-              <h3 
-                className="text-2xl font-light mb-3"
-                style={{ fontFamily: 'Cormorant Garamond, serif' }}
-              >
-                Your Custom Cosmic Blueprint Has Been Generated
-              </h3>
-              <p className="text-gray-600" style={{ fontFamily: 'Avenir, -apple-system, sans-serif' }}>
-                Check your inbox at <span className="font-medium">{userEmail}</span> in a few minutes
+            
+            <div className="text-center mb-8">
+              <p className="text-purple-600 text-lg italic" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+                Your cosmic blueprint has been delivered
               </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-4">
-              {/* Download Report Button */}
-              {!testMode && (
-                <button
-                  className="w-full bg-purple-900 text-white py-5 text-lg tracking-widest uppercase rounded-lg shadow-lg hover:bg-purple-800 transition-all duration-300"
-                  style={{ fontFamily: 'Avenir, -apple-system, sans-serif', fontWeight: 300 }}
-                >
-                  Download Full Report (PDF)
-                </button>
-              )}
-
-              {/* Email Notice */}
-              <div className="text-center py-6">
-                <p className="text-gray-600 mb-2" style={{ fontFamily: 'Avenir, -apple-system, sans-serif' }}>
-                  Your complete report has been emailed to you.
-                </p>
-                <p className="text-gray-500 text-sm" style={{ fontFamily: 'Avenir, -apple-system, sans-serif' }}>
-                  Check your inbox (and spam folder) within 5 minutes.
-                </p>
-              </div>
-
-              {/* Generate Another Report Button */}
-              <Link href="/">
-                <button
-                  className="w-full bg-purple-100 text-purple-900 py-5 text-lg tracking-widest uppercase rounded-lg shadow hover:bg-purple-200 transition-all duration-300"
-                  style={{ fontFamily: 'Avenir, -apple-system, sans-serif', fontWeight: 300 }}
-                >
-                  Generate Another Report
-                </button>
-              </Link>
             </div>
           </>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-gray-600">Unable to load report. Please try again.</p>
+        )}
+        
+        {phase === 'error' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-8">
+            <p>Error: {error}</p>
+            <button 
+              onClick={sendReport}
+              className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Try Again
+            </button>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-16 text-center">
-          <p className="text-sm text-purple-600" style={{ fontFamily: 'Avenir, -apple-system, sans-serif', fontWeight: 300 }}>
-            © 2024 Astrologie. Celestial Insights for the Elite.
-          </p>
+        <div className="bg-purple-100 rounded-lg p-8 text-center">
+          <Link href="/" className="inline-block bg-purple-900 text-white py-3 px-8 rounded-lg hover:bg-purple-800 transition-colors">
+            Generate Another Report
+          </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }

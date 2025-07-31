@@ -42,6 +42,8 @@ export default function Home() {
     return () => {
       if (document.head.contains(link)) document.head.removeChild(link);
     };
+  // Store form data for the success page
+  localStorage.setItem('birthData', JSON.stringify(formData));
   }, []);
 
   useEffect(() => {

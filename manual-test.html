@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Test</title>
+</head>
+<body>
+    <h1>Manual Test</h1>
+    <button onclick="saveData()">1. Save Test Data</button>
+    <button onclick="checkData()">2. Check Saved Data</button>
+    <button onclick="sendEmail()">3. Send Test Email</button>
+    <pre id="result"></pre>
+    
+    <script>
+    function saveData() {
+        const testData = {
+            name: "Shefali Manoj Patel",
+            birthDate: "1994-01-10",
+            birthTime: "12:58 PM EST",
+            birthPlace: "Parsippany, New Jersey, USA",
+            email: "shefalimanojpatel@gmail.com"
+        };
+        localStorage.setItem('birthData', JSON.stringify(testData));
+        document.getElementById('result').textContent = 'Data saved: ' + JSON.stringify(testData, null, 2);
+    }
+    
+    function checkData() {
+        const data = localStorage.getItem('birthData');
+        document.getElementById('result').textContent = 'Stored data: ' + (data || 'NOT FOUND');
+    }
+    
+    async function sendEmail() {
+        const data = localStorage.getItem('birthData');
+        if (!data) {
+            document.getElementById('result').textContent = 'No data saved! Click button 1 first.';
+            return;
+        }
+        
+        const birthData = JSON.parse(data);
+        try {
+            const response = await fetch('http://localhost:3001/api/send-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: birthData.email,
+                    name: birthData.name,
+                    report: { 
+                        title: 'Cosmic Blueprint for ' + birthData.name,
+                        summary: 'Your astrological analysis'
+                    }
+                })
+            });
+            const result = await response.json();
+            document.getElementById('result').textContent = 'Email result: ' + JSON.stringify(result, null, 2);
+        } catch (err) {
+            document.getElementById('result').textContent = 'Error: ' + err.message;
+        }
+    }
+    </script>
+</body>
+</html>
